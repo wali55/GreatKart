@@ -104,3 +104,30 @@ def activate(request, uidb64, token):
 @login_required(login_url = 'login')
 def dashboard(request):
     return render(request, 'accounts/dashboard.html')
+
+
+def forgot_password(request):
+    if request.method == 'POST':
+        email = request.POST['email']
+        if Account.objects.filter(email=email).exists():
+            user = Account.objects.get(email__exact=email)
+
+            # Reset password email
+            current_site = get_current_site(request)
+            mail_subject = 'Reset your password.'
+            message = render_to_string('accounts/reset_password_email.html', {
+                'user': user,
+                'domain': current_site,
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)),
+                'token': default_token_generator.make_token(user),
+            })
+            to_mail = email
+            send_email = EmailMessage(mail_subject, message, to=[to_mail])
+            send_email.send()
+
+            messages.success(request, 'Password reset email has sent to your email address.')
+            return redirect('login')
+        else:
+            messages.error(request, 'Account does not exist.')
+            return redirect('forgot_password')
+    return render(request, 'accounts/forgot_password.html')
