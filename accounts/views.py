@@ -131,3 +131,38 @@ def forgot_password(request):
             messages.error(request, 'Account does not exist.')
             return redirect('forgot_password')
     return render(request, 'accounts/forgot_password.html')
+
+
+def reset_password_validate(request, uidb64, token):
+    try:
+        uid = urlsafe_base64_decode(uidb64).decode()
+        user = Account._default_manager.get(id=uid)
+    except(ValueError, TypeError, OverflowError, Account.DoesNotExist):
+        user = None
+
+    if user is not None and default_token_generator.check_token(user, token):
+        request.session['uid'] = uid
+        messages.success(request, 'Please reset your password')
+        return redirect('reset_password')
+    else:
+        messages.error(request, 'This link has been expired.')
+        return redirect('forgot_password')
+    
+
+def reset_password(request):
+    if request.method == 'POST':
+        password = request.POST['password']
+        confirm_password = request.POST['confirm_password']
+
+        if password == confirm_password:
+            uid = request.session['uid']
+            user = Account.objects.get(id=uid)
+            user.set_password(password)
+            user.save()
+            messages.success(request, 'Password reset successful.')
+            return redirect('login')
+        else:
+            messages.error(request, 'Password and Confirm Password does not match.')
+            return redirect('reset_password')
+    else:
+        return render(request, 'accounts/reset_password.html')
