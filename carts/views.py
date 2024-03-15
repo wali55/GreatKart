@@ -124,5 +124,13 @@ def cart(request, total=0, quantity=0, cart_items=None):
     return render(request, 'store/cart.html', context)
 
 
-def checkout(request):
+def checkout(request, total=0, quantity=0, cart_items=None):
+    cart = Cart.objects.get(cart_id=_cart_id(request))
+    cart_items = CartItem.objects.filter(cart=cart, is_active=True)
+
+    try:
+        tax = 0
+        grand_total = 0
+        for cart_item in cart_items:
+            total +=
     return render(request, 'store/checkout.html')
