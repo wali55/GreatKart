@@ -4,6 +4,9 @@ from .forms import OrderForm
 from .models import Order
 import datetime
 
+def payments(request):
+    return render(request, 'orders/payments.html')
+
 def place_order(request, total=0, quantity=0):
     current_user = request.user
 
@@ -31,16 +34,17 @@ def place_order(request, total=0, quantity=0):
             # Create Order instance 
             data = Order()
             
-            data.first_name = form.cleaned_data('first_name')
-            data.last_name = form.cleaned_data('last_name')
-            data.email = form.cleaned_data('email')
-            data.phone_number = form.cleaned_data('phone_number')
-            data.address_line_1 = form.cleaned_data('address_line_1')
-            data.address_line_2 = form.cleaned_data('address_line_2')
-            data.city = form.cleaned_data('city')
-            data.state = form.cleaned_data('state')
-            data.country = form.cleaned_data('country')
-            data.order_note = form.cleaned_data('order_note')
+            data.user = current_user
+            data.first_name = form.cleaned_data['first_name']
+            data.last_name = form.cleaned_data['last_name']
+            data.email = form.cleaned_data['email']
+            data.phone_number = form.cleaned_data['phone_number']
+            data.address_line_1 = form.cleaned_data['address_line_1']
+            data.address_line_2 = form.cleaned_data['address_line_2']
+            data.city = form.cleaned_data['city']
+            data.state = form.cleaned_data['state']
+            data.country = form.cleaned_data['country']
+            data.order_note = form.cleaned_data['order_note']
             data.order_total = grand_total
             data.tax = tax
             data.ip = request.META.get('REMOTE_ADDR')
