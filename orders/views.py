@@ -2,6 +2,9 @@ from django.shortcuts import render, redirect
 from carts.models import CartItem
 from .forms import OrderForm
 from .models import Order, Payment, OrderProduct
+from .models import Product
+from django.template.loader import render_to_string
+from django.core.mail import EmailMessage
 import datetime
 import json
 
@@ -36,11 +39,30 @@ def payments(request):
         order_product.product_price = item.product.price
         order_product.ordered = True
         order_product.save()
-    # Reduce the quantity of the sold products 
+
+        cart_item = CartItem.objects.get(id=item.id)
+        product_variation = cart_item.variations.all()
+        order_product = OrderProduct.objects.get(id=order_product.id)
+        order_product.variations.set(product_variation)
+        order_product.save()
+
+        # Reduce the quantity of the sold products
+        product = Product.objects.get(id=item.product_id)
+        product.stock -= item.quantity
+        product.save()
 
     # Clear the cart
+    CartItem.objects.filter(user=request.user).delete()
 
     # Send order received email to the customer
+    mail_subject = 'Thank you for your order!'
+    message = render_to_string('orders/order_received_email.html', {
+        'user': request.user,
+        'order': order,
+    })
+    to_email = request.user.email
+    send_email = EmailMessage(mail_subject, message, to=[to_email])
+    send_email.send()
 
     # Send order number and transaction id to sendData function via JSON response (want to display these with ordered items in thank you page)
     return render(request, 'orders/payments.html')
@@ -106,4 +128,8 @@ def place_order(request, total=0, quantity=0):
                 'grand_total': grand_total,
             }
             return render(request, 'orders/payments.html', context)
-        return redirect('checkout')    
+        return redirect('checkout')  
+
+
+def order_complete(request):
+    return render(request, 'orders/order_complete.html')  
