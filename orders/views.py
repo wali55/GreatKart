@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from carts.models import CartItem
 from .forms import OrderForm
@@ -65,7 +66,11 @@ def payments(request):
     send_email.send()
 
     # Send order number and transaction id to sendData function via JSON response (want to display these with ordered items in thank you page)
-    return render(request, 'orders/payments.html')
+    data = {
+        'order_number': order.order_number,
+        'transID': payment.payment_id,
+    }
+    return JsonResponse(data)
 
 def place_order(request, total=0, quantity=0):
     current_user = request.user
@@ -132,4 +137,23 @@ def place_order(request, total=0, quantity=0):
 
 
 def order_complete(request):
-    return render(request, 'orders/order_complete.html')  
+    order_number = request.GET['order_number']
+    transID = request.GET['payment_id']
+
+    try:
+        order = Order.objects.get(order_number=order_number, is_ordered=True)
+        ordered_products = OrderProduct.objects.filter(order_id=order.id)
+        payment = Payment.objects.get(payment_id=transID)
+
+        context = {
+            'order': order,
+            'ordered_products': ordered_products,
+            'order_number': order.order_number,
+            'transID': payment.payment_id,
+            'payment': payment,
+        }
+
+        return render(request, 'orders/order_complete.html', context)
+
+    except (Payment.DoesNotExist, Order.DoesNotExist):
+        return redirect('home')  
